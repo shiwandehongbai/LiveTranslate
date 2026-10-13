@@ -27,6 +27,7 @@ Works with any system audio — videos, livestreams, voice chat. No player modif
 - **Streaming translation display**: Real-time character-by-character translation output
 - **Per-model settings**: Streaming, structured output (JSON), context history, disable thinking
 - **Microphone mix-in**: Optionally mix microphone input with system audio for ASR
+- **Browser-only audio**: Chrome or Sogou application capture, excluding other apps and microphone input
 - **Low-latency VAD**: 32ms chunks + Silero VAD with adaptive silence detection
 - **Transparent overlay**: Always-on-top, click-through, draggable, 14 color themes
 - **CUDA acceleration**: GPU-accelerated ASR inference
@@ -104,6 +105,27 @@ Settings → Translation tab:
 | API Key | Your key |
 | Model | `deepseek-chat` |
 | Proxy | `none` / `system` / custom URL |
+
+## Browser-only audio
+
+In Settings → VAD / ASR → Audio, select **Chrome audio only** or **Sogou browser audio only** to watch a stream while using a separate voice-chat app. These modes disable microphone capture and never fall back to system audio. The existing system/default-device and microphone modes remain available.
+
+The capture target is the browser's actual Windows audio-session process (including Sogou audio children), with its process tree. A paused session remains selectable; closing and reopening the browser reconnects automatically. If more than one browser audio process is active, capture stops with a log message: close or pause the other instance, then restart capture. This does not isolate one tab or window; tabs sharing the selected audio process are included. Voice chat in the same browser may therefore also be included.
+
+Requires Windows application-loopback support. Verified on fully patched Windows 10 22H2 (build 19045); unavailable APIs fail without capturing another audio source. It uses the existing dependencies and adds no external audio-routing tool.
+
+Deterministic browser selection, Qt settings and failure-path checks:
+
+```bash
+python -m pytest tests/test_browser_audio.py
+```
+
+An optional native check plays two quiet synthetic tones in separate processes on the default output and verifies that only the selected process is captured. It requires an audible Windows output device and does not run by default (PowerShell):
+
+```powershell
+$env:LIVETRANSLATE_TEST_NATIVE_AUDIO = "1"
+python -m pytest tests/test_browser_audio_native.py -s
+```
 
 ## Live subtitle preview (opt-in)
 

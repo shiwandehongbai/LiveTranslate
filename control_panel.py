@@ -326,11 +326,16 @@ class ControlPanel(QWidget):
                 self._audio_device.addItem(name)
         except Exception:
             pass
+        self._audio_device.addItem(t("capture_chrome"), "__process__:chrome.exe")
+        self._audio_device.addItem(t("capture_sogou"), "__process__:SogouExplorer.exe")
+        self._audio_device.setToolTip(t("capture_browser_hint"))
         saved_audio = s.get("audio_device")
         if saved_audio == "__disabled__":
             self._audio_device.setCurrentIndex(0)
         elif saved_audio:
-            idx = self._audio_device.findText(saved_audio)
+            idx = self._audio_device.findData(saved_audio)
+            if idx < 0:
+                idx = self._audio_device.findText(saved_audio)
             if idx >= 0:
                 self._audio_device.setCurrentIndex(idx)
         else:
@@ -338,6 +343,7 @@ class ControlPanel(QWidget):
         asr_layout.addWidget(QLabel(t("label_audio")), 6, 0)
         asr_layout.addWidget(self._audio_device, 6, 1)
         self._audio_device.currentIndexChanged.connect(self._auto_save)
+        self._audio_device.currentIndexChanged.connect(lambda: self._sync_browser_mic())
 
         self._mic_device = QComboBox()
         self._mic_device.addItem(t("mic_disabled"))
@@ -360,6 +366,7 @@ class ControlPanel(QWidget):
         asr_layout.addWidget(QLabel(t("label_mic")), 7, 0)
         asr_layout.addWidget(self._mic_device, 7, 1)
         self._mic_device.currentIndexChanged.connect(self._auto_save)
+        self._sync_browser_mic()
 
         self._hub_combo = QComboBox()
         self._hub_combo.addItems([t("hub_modelscope"), t("hub_huggingface")])
@@ -1413,6 +1420,14 @@ class ControlPanel(QWidget):
             "语言已更改，请重启应用程序。",
         )
 
+    def _sync_browser_mic(self):
+        browser = (self._audio_device.currentData() or "").startswith("__process__:")
+        self._mic_device.setEnabled(not browser)
+        if browser:
+            blocked = self._mic_device.blockSignals(True)
+            self._mic_device.setCurrentIndex(0)
+            self._mic_device.blockSignals(blocked)
+
     def _auto_save(self):
         self._save_timer.start()
 
@@ -1476,9 +1491,10 @@ class ControlPanel(QWidget):
         elif audio_idx == 1:
             self._current_settings["audio_device"] = None
         else:
-            self._current_settings["audio_device"] = self._audio_device.currentText()
+            self._current_settings["audio_device"] = (self._audio_device.currentData()
+                                                       or self._audio_device.currentText())
         mic_idx = self._mic_device.currentIndex()
-        if mic_idx == 0:
+        if mic_idx == 0 or (self._current_settings.get("audio_device") or "").startswith("__process__:"):
             self._current_settings["mic_device"] = None
         elif mic_idx == 1:
             self._current_settings["mic_device"] = "__default__"
