@@ -105,6 +105,22 @@ Settings → Translation tab:
 | Model | `deepseek-chat` |
 | Proxy | `none` / `system` / custom URL |
 
+## Live subtitle preview (opt-in)
+
+Enable **Live subtitle preview** in the ASR/VAD settings to revise the current caption while speech continues. Enable **Translate provisional subtitles** separately for each translation model. Both options default to off; cloud preview translation makes additional requests and may incur charges.
+
+The existing interim interval also controls preview checks (0.5–10 seconds). Preview starts after at least one second of buffered audio. Try 0.7 seconds with a fast local translator. This is a check interval, not a guaranteed subtitle latency. Keep the source language fixed when it is known.
+
+Preview uses an immutable copy of the current audio buffer. It does not trim audio or commit half-sentences. Final VAD segments retain priority; pending ASR and translation previews are replaced by newer previews. Provisional text changes in place, including in the standalone subtitle window, without its minimum-display delay or transition animations. Only final text enters transcript files, exported message history, and translation context.
+
+Pause, Clear, and model/language/device changes invalidate pending previews. An identical completed preview translation can be reused for the final result. Failed translations are not retried by the preview pipeline. This remains repeated inference with an existing ASR model, rather than a native streaming decoder.
+
+Regression checks require the existing app dependencies and pytest:
+
+```bash
+python -m pytest tests/test_live_preview.py tests/test_preview_widgets.py tests/test_preview_integration.py
+```
+
 ## Architecture
 
 ```

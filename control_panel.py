@@ -513,16 +513,25 @@ class ControlPanel(QWidget):
         self._incremental_asr_cb.toggled.connect(self._on_timing_changed)
         self._incremental_asr_cb.toggled.connect(self._auto_save)
         timing_layout.addWidget(self._incremental_asr_cb, 4, 0)
+        self._live_preview_cb = QCheckBox(t("label_live_preview"))
+        self._live_preview_cb.setToolTip(t("live_preview_hint"))
+        self._live_preview_cb.setChecked(s.get("live_preview", False))
+        self._live_preview_cb.toggled.connect(self._on_timing_changed)
+        self._live_preview_cb.toggled.connect(self._auto_save)
+        timing_layout.addWidget(self._live_preview_cb, 4, 1)
 
         self._interim_interval_spin = QDoubleSpinBox()
-        self._interim_interval_spin.setRange(1.0, 10.0)
-        self._interim_interval_spin.setSingleStep(0.5)
+        self._interim_interval_spin.setRange(0.5, 10.0)
+        self._interim_interval_spin.setSingleStep(0.1)
         self._interim_interval_spin.setValue(s.get("interim_interval", 2.0))
         self._interim_interval_spin.setSuffix(" s")
-        self._interim_interval_spin.setEnabled(s.get("incremental_asr", False))
+        self._interim_interval_spin.setEnabled(s.get("incremental_asr", False) or s.get("live_preview", False))
         self._interim_interval_spin.valueChanged.connect(self._on_timing_changed)
         self._interim_interval_spin.valueChanged.connect(self._auto_save)
-        self._incremental_asr_cb.toggled.connect(self._interim_interval_spin.setEnabled)
+        def enable_interval():
+            self._interim_interval_spin.setEnabled(self._incremental_asr_cb.isChecked() or self._live_preview_cb.isChecked())
+        self._incremental_asr_cb.toggled.connect(enable_interval)
+        self._live_preview_cb.toggled.connect(enable_interval)
         timing_layout.addWidget(QLabel(t("label_interim_interval")), 5, 0)
         timing_layout.addWidget(self._interim_interval_spin, 5, 1)
 
@@ -1385,6 +1394,7 @@ class ControlPanel(QWidget):
         )
         self._current_settings["silence_duration"] = round(self._silence_duration.value(), 2)
         self._current_settings["incremental_asr"] = self._incremental_asr_cb.isChecked()
+        self._current_settings["live_preview"] = self._live_preview_cb.isChecked()
         self._current_settings["interim_interval"] = round(self._interim_interval_spin.value(), 2)
 
     def _on_ui_lang_changed(self, index):
