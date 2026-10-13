@@ -109,9 +109,11 @@ Settings → Translation tab:
 
 Enable **Live subtitle preview** in the ASR/VAD settings to revise the current caption while speech continues. Enable **Translate provisional subtitles** separately for each translation model. Both options default to off; cloud preview translation makes additional requests and may incur charges.
 
-The existing interim interval also controls preview checks (0.5–10 seconds). Preview starts after at least one second of buffered audio. Try 0.7 seconds with a fast local translator. This is a check interval, not a guaranteed subtitle latency. Keep the source language fixed when it is known.
+The existing interim interval also controls preview checks (0.5–10 seconds). Preview starts after buffering at least one second or the chosen interval, whichever is longer. A 0.7-second interval favors speed; 1.5 seconds gives the first preview more context and reduces revisions. This is a check interval, not a guaranteed subtitle latency. Keep the source language fixed when it is known.
 
 Preview uses an immutable copy of the current audio buffer. It does not trim audio or commit half-sentences. Final VAD segments retain priority; pending ASR and translation previews are replaced by newer previews. Provisional text changes in place, including in the standalone subtitle window, without its minimum-display delay or transition animations. Only final text enters transcript files, exported message history, and translation context.
+
+For a rolling display, set the standalone subtitle window to two sentences. Live captions show the preceding confirmed sentence and the current provisional sentence on separate lines. The visible translation remains while its replacement is being computed; a failed final translation does not retain provisional text as a confirmed result. Current sentences remain revisable, including changes to their word order.
 
 Pause, Clear, and model/language/device changes invalidate pending previews. An identical completed preview translation can be reused for the final result. Failed translations are not retried by the preview pipeline. This remains repeated inference with an existing ASR model, rather than a native streaming decoder.
 

@@ -80,13 +80,47 @@ def test_live_revision_has_no_entry_animation(windows):
     assert all(w._anim_group is None for w in windows[1]._text_widgets)
 
 
-def test_previous_throttled_tokens_cannot_reappear_after_revision(windows):
+def test_revision_keeps_visible_text_without_flushing_old_pending_tokens(windows):
     overlay, _ = windows
     caption(windows, "old", "上一句")
     caption(windows, "old", "上一句完整")
+    visible = overlay._preview_message._trans_label.text()
     caption(windows, "new", "", revision=2)
     QTest.qWait(80)
-    assert "上一句" not in overlay._preview_message._trans_label.text()
+    assert overlay._preview_message._trans_label.text() == visible
+    assert "上一句完整" not in overlay._preview_message._trans_label.text()
+
+
+def test_pending_translation_does_not_blank_current_subtitle(windows):
+    caption(windows, "Hello", "你好")
+    caption(windows, "Hello there", "", revision=2)
+    assert any(w._text == "你好" for w in windows[1]._text_widgets)
+    caption(windows, "Hello there", "大家好", revision=2)
+    assert any(w._text == "大家好" for w in windows[1]._text_widgets)
+
+
+def test_next_sentence_keeps_previous_chinese_only_while_pending(windows):
+    caption(windows, "Hello", "你好", final=True)
+    caption(windows, "How are you", "", utterance=1)
+    assert any(w._text == "How are you" for w in windows[1]._text_widgets)
+    assert any(w._text == "你好" for w in windows[1]._text_widgets)
+    caption(windows, "How are you", "你好吗", utterance=1)
+    assert any(w._text == "你好吗" for w in windows[1]._text_widgets)
+    caption(windows, "How are you", "", final=True, utterance=1)
+    assert not any(w._text == "你好吗" for w in windows[1]._text_widgets)
+
+
+def test_live_captions_roll_by_line_with_confirmed_sentence_unchanged(qt):
+    subtitle = SubtitleWindow({"sentences": 2})
+    try:
+        subtitle.update_caption(1, 0, 1, "First", {"zh": "前一句"}, True)
+        subtitle.update_caption(1, 1, 1, "Second", {"zh": "当前句"}, False)
+        assert any(w._text == "前一句\n当前句" for w in subtitle._text_widgets)
+        subtitle.update_caption(1, 1, 2, "Second revised", {"zh": "当前句修订"}, False)
+        assert any(w._text == "前一句\n当前句修订" for w in subtitle._text_widgets)
+        assert subtitle._sentences == [("First", {"zh": "前一句"})]
+    finally:
+        subtitle.close()
 
 
 def test_older_final_preserves_newer_preview_at_bottom(windows):

@@ -86,3 +86,29 @@ def test_pause_invalidates_audio_and_late_translation():
     frame = app._preview.frame(np.ones(16000))
     app.pause()
     assert app._paused and resets and not app._preview.valid(frame)
+
+
+def test_preview_interval_allows_more_initial_context():
+    app, _, _ = app_fixture()
+    app._config = {"audio": {"sample_rate": 16000, "chunk_duration": .032}}
+    app._running = app._live_preview = app._asr_ready = True
+    app._paused = False
+    app._vad_lock = threading.Lock()
+    app._last_interim_check_time = 0
+    app._interim_interval = 1.5
+    app._vad = SimpleNamespace(last_confidence=1, process_chunk=lambda x: None)
+    durations = iter([1.0, 1.5])
+    app._vad.peek_buffer = lambda: (np.zeros(24000), next(durations))
+    calls = []
+
+    def audio(**kwargs):
+        return np.zeros(512), None
+
+    def enqueue(*args):
+        calls.append(args)
+        app._running = False
+
+    app._audio = SimpleNamespace(get_audio=audio)
+    app._enqueue_asr = enqueue
+    app._capture_loop()
+    assert len(calls) == 1 and calls[0][0] == "preview"

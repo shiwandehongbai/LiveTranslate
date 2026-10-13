@@ -868,7 +868,7 @@ class SubtitleWindow(QWidget):
                 self._sentences.append((original, dict(translations)))
                 self._sentences = self._sentences[-self._settings.get("sentences", 1):]
         elif original:
-            if not translations and self._preview_key == key and self._preview_sentence[0] == original:
+            if not any(translations.values()) and self._preview_key == key:
                 translations = self._preview_sentence[1]
             self._preview_key = key
             self._preview_revision = revision
@@ -972,7 +972,11 @@ class SubtitleWindow(QWidget):
                             if v:
                                 texts.append(v)
                                 break
-            tw.set_text(" | ".join(texts) if len(texts) > 1 else (texts[0] if texts else ""), immediate=immediate)
+                if immediate and self._preview_sentence and not any(texts):
+                    wi += 1
+                    continue
+            separator = "\n" if immediate else " | "
+            tw.set_text(separator.join(texts), immediate=immediate)
             wi += 1
 
     def get_target_languages(self) -> set:

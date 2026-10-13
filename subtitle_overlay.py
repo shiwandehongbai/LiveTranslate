@@ -1255,7 +1255,6 @@ class SubtitleOverlay(QWidget):
             msg._pending_streaming = None
             msg._original = original
             msg._header_label.setText(msg._build_header_html(msg._current_style))
-            msg._trans_label.clear()
         self._preview_revision = revision
         if translated:
             msg.update_streaming(translated)

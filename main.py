@@ -1757,7 +1757,7 @@ class LiveTranslateApp:
                     else:
                         peek = self._vad.peek_buffer()
                         now = time.monotonic()
-                        if (peek is not None and peek[1] >= 1.0 and
+                        if (peek is not None and peek[1] >= max(1.0, self._interim_interval) and
                                 now - self._last_interim_check_time >= self._interim_interval):
                             self._last_interim_check_time = now
                             self._enqueue_asr("preview", self._preview.frame(peek[0]))
